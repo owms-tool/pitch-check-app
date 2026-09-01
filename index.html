@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>音程チェッカー・トレーニング・テスト</title>
+<title>音痴！or NOT!!</title>
 <style>
   :root{
     --bg1:#1e1b3a; --bg2:#3a2a5d; --card:#2a2450;
@@ -81,8 +81,8 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>🎤 音程チェッカー / トレーニング / テスト</h1>
-  <div class="version">v1.5</div>
+  <h1>🎤 音痴！or NOT!!</h1>
+  <div class="version">v1.9</div>
 
   <div class="tabs">
     <div class="tab active" data-mode="checker">① チェッカー</div>
@@ -118,6 +118,7 @@
       <div class="result-big" id="trainingResultBig"></div>
       <div class="result-sub" id="trainingResultSub"></div>
     </div>
+    <button class="btn-main" id="trainingNextBtn" style="display:none;margin-top:8px;">次の音へ</button>
   </div>
 
   <!-- ============ ③ 音痴度テストモード ============ -->
@@ -152,7 +153,7 @@
     TOLERANCE_CENTS: 50,        // OK判定の許容範囲（±セント）
     KEEP_MS: 3000,               // HIT判定に必要な連続キープ時間（ミリ秒）
     GRACE_BUDGET_MS: 300,        // キープ中、範囲外にはみ出しても許容する合計時間（ミリ秒）
-    TRAINING_CONSECUTIVE_TARGET: 3, // トレーニングで次の音に進むための連続HIT数
+    TRAINING_CONSECUTIVE_TARGET: 1, // トレーニングで次の音に進むための連続HIT数（1なら1回HITで即次へ）
     TEST_TIMEOUT_MS: 15000,      // テストモードで1問あたりのタイムアウト（ミリ秒）
     TONE_DURATION_CHECKER: 5.0,  // チェッカーモードのお手本再生時間（秒）
     TONE_DURATION_TRAINING: 2.0, // トレーニングモードのお手本再生時間（秒）
@@ -442,6 +443,7 @@
     const resultBox = document.getElementById('trainingResultBox');
     const resultBig = document.getElementById('trainingResultBig');
     const resultSub = document.getElementById('trainingResultSub');
+    const nextBtn = document.getElementById('trainingNextBtn');
 
     fillNoteSelect(noteSelect);
     function updateLabel(){ freqLabel.textContent = `目標周波数: ${NOTES[noteSelect.value].freq.toFixed(2)} Hz`; }
@@ -459,8 +461,10 @@
       consecutiveHits = 0;
       running = true;
       startBtn.style.display = 'none';
+      noteSelect.disabled = true;
       stopBtn.style.display = 'block';
       resultBox.style.display = 'none';
+      nextBtn.style.display = 'none';
 
       ctx = getAudioCtx();
       if (ctx.state === 'suspended') await ctx.resume();
@@ -494,12 +498,14 @@
       if (pollTimer) clearInterval(pollTimer);
       if (stream) stream.getTracks().forEach(t => t.stop());
       startBtn.style.display = 'block';
+      noteSelect.disabled = false;
       stopBtn.style.display = 'none';
       meterWrap.style.display = 'none';
       meterLabels.style.display = 'none';
       keepWrap.style.display = 'none';
       keepFill.style.width = '0%';
       progressText.textContent = '';
+      nextBtn.style.display = 'none';
       if (finalMessage){
         resultBox.style.display = 'block';
         resultBox.className = 'result ok';
@@ -521,7 +527,11 @@
         return;
       }
       const note = NOTES[noteIndex];
-      progressText.textContent = `音 ${noteIndex + 1} / ${NOTES.length}　（連続HIT: ${consecutiveHits} / ${CONFIG.TRAINING_CONSECUTIVE_TARGET}）`;
+      noteSelect.value = noteIndex;
+      freqLabel.textContent = `今の音: ${note.label}　（目標周波数: ${note.freq.toFixed(2)} Hz）`;
+      progressText.textContent = CONFIG.TRAINING_CONSECUTIVE_TARGET > 1
+        ? `音 ${noteIndex + 1} / ${NOTES.length}　（連続HIT: ${consecutiveHits} / ${CONFIG.TRAINING_CONSECUTIVE_TARGET}）`
+        : `音 ${noteIndex + 1} / ${NOTES.length}`;
       statusText.textContent = `🔊 お手本再生中... (${note.label})`;
       keepFill.style.width = '0%';
 
@@ -559,14 +569,16 @@
           resultBig.textContent = `✨ HIT！（${elapsedSec}秒）`;
           resultSub.textContent = getTrainingComment(elapsed);
           statusText.textContent = '';
-          setTimeout(() => {
+          nextBtn.style.display = 'block';
+          nextBtn.onclick = () => {
             if (!running) return;
+            nextBtn.style.display = 'none';
             if (consecutiveHits >= CONFIG.TRAINING_CONSECUTIVE_TARGET){
               consecutiveHits = 0;
               noteIndex++;
             }
             runNoteCycle();
-          }, 1800);
+          };
         }
       }, CONFIG.PITCH_POLL_MS);
     }
