@@ -19,7 +19,7 @@
     color:var(--text); display:flex; justify-content:center; padding:20px 12px;
   }
   .wrap{width:100%;max-width:500px;}
-  h1{font-size:1.3rem;text-align:center;margin:4px 0 2px;}
+  h1{font-size:1.9rem;text-align:center;margin:4px 0 2px;font-weight:900;}
   .version{text-align:center;color:var(--sub);font-size:0.7rem;margin-bottom:14px;}
 
   .tabs{display:flex;gap:6px;margin-bottom:14px;}
@@ -82,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>🎤 音痴！or NOT!!</h1>
-  <div class="version">v1.9</div>
+  <div class="version">v2.0</div>
 
   <div class="tabs">
     <div class="tab active" data-mode="checker">① チェッカー</div>
@@ -108,6 +108,7 @@
     <select id="trainingNote"></select>
     <div class="target-freq" id="trainingFreqLabel"></div>
     <button class="btn-main" id="trainingStartBtn">トレーニング開始</button>
+    <button class="btn-main" id="trainingNextBtn" style="display:none;">次の音へ</button>
     <button class="btn-sub" id="trainingStopBtn" style="display:none;">終了する</button>
     <div class="status" id="trainingStatus"></div>
     <div class="progress-text" id="trainingProgress"></div>
@@ -118,7 +119,6 @@
       <div class="result-big" id="trainingResultBig"></div>
       <div class="result-sub" id="trainingResultSub"></div>
     </div>
-    <button class="btn-main" id="trainingNextBtn" style="display:none;margin-top:8px;">次の音へ</button>
   </div>
 
   <!-- ============ ③ 音痴度テストモード ============ -->
