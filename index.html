@@ -82,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>🎤 音程チェッカー / トレーニング / テスト</h1>
-  <div class="version">v1.3</div>
+  <div class="version">v1.4</div>
 
   <div class="tabs">
     <div class="tab active" data-mode="checker">① チェッカー</div>
@@ -450,7 +450,7 @@
     noteSelect.addEventListener('change', updateLabel);
 
     let running = false;
-    let stream, ctx, source, analyser, buf;
+    let stream, ctx, source, analyser, buf, micTrack;
     let noteIndex = 0;
     let consecutiveHits = 0;
     let pollTimer = null;
@@ -480,6 +480,7 @@
       analyser.fftSize = 2048;
       source.connect(analyser);
       buf = new Float32Array(analyser.fftSize);
+      micTrack = stream.getAudioTracks()[0];
 
       meterWrap.style.display = 'block';
       meterLabels.style.display = 'flex';
@@ -525,8 +526,10 @@
       hitComment.textContent = '';
       keepFill.style.width = '0%';
 
+      if (micTrack) micTrack.enabled = false;
       await playTone(note.freq, CONFIG.TONE_DURATION_TRAINING);
       if (!running) return;
+      if (micTrack) micTrack.enabled = true;
 
       statusText.textContent = '🗣️ 同じ音程を出して、そのままキープ！';
       const tracker = createKeepTracker();
@@ -618,6 +621,7 @@
       analyser.fftSize = 2048;
       source.connect(analyser);
       const buf = new Float32Array(analyser.fftSize);
+      const micTrack = stream.getAudioTracks()[0];
 
       meterWrap.style.display = 'block';
       meterLabels.style.display = 'flex';
@@ -633,7 +637,9 @@
         hitFlash.textContent = '';
         keepFill.style.width = '0%';
 
+        if (micTrack) micTrack.enabled = false;
         await playTone(note.freq, CONFIG.TONE_DURATION_TEST);
+        if (micTrack) micTrack.enabled = true;
         statusText.textContent = '🗣️ 同じ音程を出して、3秒キープ！';
 
         const outcome = await new Promise((resolve) => {
