@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>音程チェッカー・トレーニング・テスト</title>
+<style>
+  :root{
+    --bg1:#1e1b3a; --bg2:#3a2a5d; --card:#2a2450;
+    --accent:#7c6cf0; --accent2:#4fd1c5;
+    --ok:#4ade80; --ng:#f87171;
+    --text:#f3f1ff; --sub:#b3aee0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    font-family:"Hiragino Sans","Yu Gothic",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--text); display:flex; justify-content:center; padding:20px 12px;
+  }
+  .wrap{width:100%;max-width:500px;}
+  h1{font-size:1.3rem;text-align:center;margin:4px 0 2px;}
+  .version{text-align:center;color:var(--sub);font-size:0.7rem;margin-bottom:14px;}
+
+  .tabs{display:flex;gap:6px;margin-bottom:14px;}
+  .tab{
+    flex:1; text-align:center; padding:10px 4px; border-radius:10px;
+    background:var(--card); color:var(--sub); font-size:0.8rem; cursor:pointer;
+    border:1px solid transparent;
+  }
+  .tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0d0a24;font-weight:bold;}
+
+  .card{background:var(--card);border-radius:18px;padding:22px;margin-bottom:16px;box-shadow:0 8px 24px rgba(0,0,0,0.3);}
+  .mode-section{display:none;}
+  .mode-section.active{display:block;}
+
+  label{font-size:0.85rem;color:var(--sub);display:block;margin-bottom:6px;}
+  select{
+    width:100%;padding:10px 36px 10px 10px;border-radius:10px;border:none;font-size:1rem;
+    background-color:#181433;color:var(--text);margin-bottom:14px;
+    appearance:none;-webkit-appearance:none;-moz-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M6 9l6 6 6-6' fill='none' stroke='%234fd1c5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat:no-repeat;background-position:right 10px center;background-size:18px;
+  }
+  .target-freq{text-align:center;font-size:0.8rem;color:var(--sub);margin-top:-6px;margin-bottom:14px;}
+
+  button{width:100%;padding:14px;border:none;border-radius:12px;font-size:1.05rem;font-weight:bold;cursor:pointer;transition:transform .1s;}
+  button:active{transform:scale(0.97);}
+  .btn-main{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0d0a24;}
+  .btn-sub{background:#3a3568;color:var(--text);margin-top:8px;}
+  button:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .status{text-align:center;font-size:1rem;min-height:1.4em;margin:14px 0 6px;}
+  .progress-text{text-align:center;font-size:0.8rem;color:var(--sub);margin-bottom:6px;}
+
+  .meter-wrap{position:relative;height:60px;background:#181433;border-radius:12px;margin:10px 0 4px;overflow:hidden;display:none;}
+  .meter-scale{position:absolute;top:0;bottom:0;left:50%;width:2px;background:rgba(255,255,255,0.35);}
+  .meter-needle{position:absolute;top:6px;bottom:6px;width:8px;border-radius:4px;background:var(--accent2);left:50%;transform:translateX(-50%);transition:left .08s linear, background .08s linear;}
+  .meter-labels{display:flex;justify-content:space-between;font-size:0.7rem;color:var(--sub);margin-bottom:14px;display:none;}
+
+  .keep-bar-wrap{height:14px;background:#181433;border-radius:7px;overflow:hidden;margin:6px 0 14px;display:none;}
+  .keep-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--ok));transition:width .1s linear;}
+
+  .result{text-align:center;padding:18px;border-radius:14px;margin-top:6px;display:none;}
+  .result.ok{background:rgba(74,222,128,0.15);border:1px solid var(--ok);}
+  .result.ng{background:rgba(248,113,113,0.15);border:1px solid var(--ng);}
+  .result-big{font-size:1.5rem;font-weight:bold;margin-bottom:4px;}
+  .result.ok .result-big{color:var(--ok);}
+  .result.ng .result-big{color:var(--ng);}
+  .result-sub{font-size:0.85rem;color:var(--sub);}
+
+  .hit-flash{text-align:center;font-size:1.4rem;font-weight:bold;color:var(--ok);min-height:1.6em;margin-top:4px;}
+  .hit-comment{text-align:center;font-size:0.85rem;color:var(--sub);min-height:1.3em;margin-top:2px;}
+
+  table{width:100%;font-size:0.8rem;border-collapse:collapse;margin-top:12px;}
+  td,th{padding:6px 4px;text-align:center;border-bottom:1px solid #443f78;}
+  th{color:var(--sub);font-weight:normal;}
+
+  .note{font-size:0.75rem;color:var(--sub);text-align:center;margin-top:16px;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎤 音程チェッカー / トレーニング / テスト</h1>
+  <div class="version">v1.1</div>
+
+  <div class="tabs">
+    <div class="tab active" data-mode="checker">① チェッカー</div>
+    <div class="tab" data-mode="training">② トレーニング</div>
+    <div class="tab" data-mode="test">③ 音痴度テスト</div>
+  </div>
+
+  <!-- ============ ① チェッカーモード ============ -->
+  <div class="card mode-section active" id="section-checker">
+    <label for="checkerNote">お手本の音程</label>
+    <select id="checkerNote"></select>
+    <div class="target-freq" id="checkerFreqLabel"></div>
+    <button class="btn-main" id="checkerStartBtn">スタート</button>
+    <div class="status" id="checkerStatus"></div>
+    <div class="meter-wrap" id="checkerMeterWrap"><div class="meter-scale"></div><div class="meter-needle" id="checkerNeedle"></div></div>
+    <div class="meter-labels" id="checkerMeterLabels"><span>低い (-100¢)</span><span>ぴったり</span><span>高い (+100¢)</span></div>
+    <div class="result" id="checkerResult"><div class="result-big" id="checkerResultBig"></div><div class="result-sub" id="checkerResultSub"></div></div>
+  </div>
+
+  <!-- ============ ② トレーニングモード ============ -->
+  <div class="card mode-section" id="section-training">
+    <label for="trainingNote">スタートする音程</label>
+    <select id="trainingNote"></select>
+    <div class="target-freq" id="trainingFreqLabel"></div>
+    <button class="btn-main" id="trainingStartBtn">トレーニング開始</button>
+    <button class="btn-sub" id="trainingStopBtn" style="display:none;">終了する</button>
+    <div class="status" id="trainingStatus"></div>
+    <div class="progress-text" id="trainingProgress"></div>
+    <div class="meter-wrap" id="trainingMeterWrap"><div class="meter-scale"></div><div class="meter-needle" id="trainingNeedle"></div></div>
+    <div class="meter-labels" id="trainingMeterLabels"><span>低い (-100¢)</span><span>ぴったり</span><span>高い (+100¢)</span></div>
+    <div class="keep-bar-wrap" id="trainingKeepWrap"><div class="keep-bar-fill" id="trainingKeepFill"></div></div>
+    <div class="hit-flash" id="trainingHitFlash"></div>
+    <div class="hit-comment" id="trainingHitComment"></div>
+  </div>
+
+  <!-- ============ ③ 音痴度テストモード ============ -->
+  <div class="card mode-section" id="section-test">
+    <p style="font-size:0.85rem;color:var(--sub);margin-top:0;">ランダムな5音でテストします。各音、正解音程を3秒キープできたらHITです。</p>
+    <button class="btn-main" id="testStartBtn">テスト開始（5問）</button>
+    <div class="status" id="testStatus"></div>
+    <div class="progress-text" id="testProgress"></div>
+    <div class="meter-wrap" id="testMeterWrap"><div class="meter-scale"></div><div class="meter-needle" id="testNeedle"></div></div>
+    <div class="meter-labels" id="testMeterLabels"><span>低い (-100¢)</span><span>ぴったり</span><span>高い (+100¢)</span></div>
+    <div class="keep-bar-wrap" id="testKeepWrap"><div class="keep-bar-fill" id="testKeepFill"></div></div>
+    <div class="hit-flash" id="testHitFlash"></div>
+    <div class="result" id="testResult">
+      <div class="result-big" id="testResultBig"></div>
+      <div class="result-sub" id="testResultSub"></div>
+      <table id="testResultTable"></table>
+    </div>
+  </div>
+
+  <div class="note">
+    ※ マイクの使用許可が必要です。音量が小さいと検出できないことがあるので、はっきり長めに発声してください。<br>
+    ※ 各種パラメータ（キープ時間・許容範囲など）はテストしながら調整予定です（v1.0）。
+  </div>
+</div>
+
+<script>
+(function(){
+  // ============================================================
+  // 調整用パラメータ（ここをテストしながら変更していく）
+  // ============================================================
+  const CONFIG = {
+    TOLERANCE_CENTS: 50,        // OK判定の許容範囲（±セント）
+    KEEP_MS: 3000,               // HIT判定に必要な連続キープ時間（ミリ秒）
+    GRACE_BUDGET_MS: 300,        // キープ中、範囲外にはみ出しても許容する合計時間（ミリ秒）
+    TRAINING_CONSECUTIVE_TARGET: 3, // トレーニングで次の音に進むための連続HIT数
+    TEST_TIMEOUT_MS: 15000,      // テストモードで1問あたりのタイムアウト（ミリ秒）
+    TONE_DURATION_CHECKER: 5.0,  // チェッカーモードのお手本再生時間（秒）
+    TONE_DURATION_TRAINING: 2.0, // トレーニングモードのお手本再生時間（秒）
+    TONE_DURATION_TEST: 3.0,     // テストモードのお手本再生時間（秒）
+    CHECKER_LISTEN_MS: 5000,     // チェッカーモードの発声・解析時間（ミリ秒）
+    PITCH_POLL_MS: 80,           // ピッチ解析の間隔（ミリ秒）
+    // トレーニングモード：HITまでの時間に応じたコメントのしきい値（秒）としきい値未満の場合のコメント
+    TRAINING_TIME_COMMENTS: [
+      { maxSec: 2,   text: "🎯 一発ヒット！素晴らしい音感です" },
+      { maxSec: 4,   text: "👍 いい感じ！2秒以内を目指してみましょう" },
+      { maxSec: 7,   text: "💪 もうひと頑張り！4秒以内でHitできると◎" },
+      { maxSec: Infinity, text: "🌱 焦らず、耳でしっかり聞いてから声を出してみましょう" }
+    ]
+  };
+
+  const NOTES = [
+    { label: "ド (C4)", freq: 261.63 },
+    { label: "レ (D4)", freq: 293.66 },
+    { label: "ミ (E4)", freq: 329.63 },
+    { label: "ファ (F4)", freq: 349.23 },
+    { label: "ソ (G4)", freq: 392.00 },
+    { label: "ラ (A4)", freq: 440.00 },
+    { label: "シ (B4)", freq: 493.88 },
+    { label: "ド (C5・高)", freq: 523.25 }
+  ];
+
+  let audioCtx = null;
+  function getAudioCtx(){
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  // ---------- 共通：ピッチ検出（自己相関法） ----------
+  function detectPitch(buf, sampleRate){
+    const SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) rms += buf[i]*buf[i];
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.01) return -1;
+
+    let r1 = 0, r2 = SIZE - 1;
+    const threshold = 0.2;
+    for (let i = 0; i < SIZE/2; i++){ if (Math.abs(buf[i]) < threshold){ r1 = i; break; } }
+    for (let i = 1; i < SIZE/2; i++){ if (Math.abs(buf[SIZE-i]) < threshold){ r2 = SIZE - i; break; } }
+    const trimmed = buf.slice(r1, r2);
+    const newSize = trimmed.length;
+
+    const c = new Array(newSize).fill(0);
+    for (let lag = 0; lag < newSize; lag++){
+      for (let i = 0; i < newSize - lag; i++) c[lag] += trimmed[i] * trimmed[i + lag];
+    }
+
+    let d = 0;
+    while (d < newSize - 1 && c[d] > c[d+1]) d++;
+
+    let maxVal = -1, maxPos = -1;
+    for (let i = d; i < newSize; i++){ if (c[i] > maxVal){ maxVal = c[i]; maxPos = i; } }
+    let T0 = maxPos;
+    if (T0 <= 0) return -1;
+
+    const x1 = c[T0 - 1] || c[T0];
+    const x2 = c[T0];
+    const x3 = c[T0 + 1] || c[T0];
+    const a = (x1 + x3 - 2*x2) / 2;
+    const b = (x3 - x1) / 2;
+    if (a) T0 = T0 - b / (2*a);
+
+    return sampleRate / T0;
+  }
+
+  function freqToCents(freq, targetFreq){
+    return 1200 * Math.log2(freq / targetFreq);
+  }
+
+  function playTone(freq, durationSec){
+    const ctx = getAudioCtx();
+    return new Promise((resolve) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const now = ctx.currentTime;
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
+      gain.gain.setValueAtTime(0.3, Math.max(now + 0.05, now + durationSec - 0.05));
+      gain.gain.linearRampToValueAtTime(0, now + durationSec);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + durationSec);
+      osc.onended = () => resolve();
+    });
+  }
+
+  function median(arr){
+    if (arr.length === 0) return null;
+    const s = [...arr].sort((a,b) => a - b);
+    const mid = Math.floor(s.length/2);
+    return s.length % 2 !== 0 ? s[mid] : (s[mid-1] + s[mid]) / 2;
+  }
+
+  async function getMicStream(){
+    return navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+
+  // ---------- キープ判定トラッカー ----------
+  // 範囲内にいる時間を積算し、範囲外にはみ出した時間はGRACE_BUDGET_MSまで許容する
+  function createKeepTracker(){
+    return { keepMs: 0, graceLeft: CONFIG.GRACE_BUDGET_MS };
+  }
+  function updateKeepTracker(tracker, inRange, dtMs){
+    if (inRange){
+      tracker.keepMs += dtMs;
+    } else {
+      tracker.graceLeft -= dtMs;
+      if (tracker.graceLeft < 0){
+        tracker.keepMs = 0;
+        tracker.graceLeft = CONFIG.GRACE_BUDGET_MS;
+      }
+    }
+    return tracker.keepMs >= CONFIG.KEEP_MS;
+  }
+
+  function getTrainingComment(elapsedMs){
+    const sec = elapsedMs / 1000;
+    for (const rule of CONFIG.TRAINING_TIME_COMMENTS){
+      if (sec <= rule.maxSec) return rule.text;
+    }
+    return '';
+  }
+
+  function setNeedleGeneric(el, cents){
+    const clamped = Math.max(-100, Math.min(100, cents));
+    const pct = 50 + (clamped / 100) * 45;
+    el.style.left = pct + '%';
+    el.style.background = Math.abs(cents) <= CONFIG.TOLERANCE_CENTS ? 'var(--ok)' : 'var(--ng)';
+  }
+
+  // ============================================================
+  // タブ切り替え
+  // ============================================================
+  const tabs = document.querySelectorAll('.tab');
+  const sections = {
+    checker: document.getElementById('section-checker'),
+    training: document.getElementById('section-training'),
+    test: document.getElementById('section-test')
+  };
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      Object.values(sections).forEach(s => s.classList.remove('active'));
+      sections[tab.dataset.mode].classList.add('active');
+    });
+  });
+
+  function fillNoteSelect(sel){
+    NOTES.forEach((n, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = n.label;
+      sel.appendChild(opt);
+    });
+    sel.value = 0;
+  }
+
+  // ============================================================
+  // ① チェッカーモード
+  // ============================================================
+  (function(){
+    const noteSelect = document.getElementById('checkerNote');
+    const freqLabel = document.getElementById('checkerFreqLabel');
+    const startBtn = document.getElementById('checkerStartBtn');
+    const statusText = document.getElementById('checkerStatus');
+    const meterWrap = document.getElementById('checkerMeterWrap');
+    const meterLabels = document.getElementById('checkerMeterLabels');
+    const needle = document.getElementById('checkerNeedle');
+    const resultBox = document.getElementById('checkerResult');
+    const resultBig = document.getElementById('checkerResultBig');
+    const resultSub = document.getElementById('checkerResultSub');
+
+    fillNoteSelect(noteSelect);
+    function updateLabel(){ freqLabel.textContent = `目標周波数: ${NOTES[noteSelect.value].freq.toFixed(2)} Hz`; }
+    updateLabel();
+    noteSelect.addEventListener('change', updateLabel);
+
+    startBtn.addEventListener('click', async () => {
+      startBtn.disabled = true;
+      resultBox.style.display = 'none';
+      meterWrap.style.display = 'none';
+      meterLabels.style.display = 'none';
+
+      const targetFreq = NOTES[noteSelect.value].freq;
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      statusText.textContent = `🔊 お手本の音を再生中... (${NOTES[noteSelect.value].label})`;
+      await playTone(targetFreq, CONFIG.TONE_DURATION_CHECKER);
+
+      statusText.textContent = '🎙️ マイクを準備中...';
+      let stream;
+      try { stream = await getMicStream(); }
+      catch (err){
+        statusText.textContent = '';
+        resultBox.style.display = 'block'; resultBox.className = 'result ng';
+        resultBig.textContent = 'マイクを使用できませんでした';
+        resultSub.textContent = 'ブラウザのマイク許可設定をご確認ください。';
+        startBtn.disabled = false;
+        return;
+      }
+
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+      const buf = new Float32Array(analyser.fftSize);
+
+      meterWrap.style.display = 'block';
+      meterLabels.style.display = 'flex';
+      setNeedleGeneric(needle, 0);
+      statusText.textContent = '🗣️ あなたの番です！同じ音程で声を出してください';
+
+      const readings = [];
+      let elapsed = 0;
+      const timer = setInterval(() => {
+        analyser.getFloatTimeDomainData(buf);
+        const freq = detectPitch(buf, ctx.sampleRate);
+        if (freq > 60 && freq < 1200){
+          const cents = freqToCents(freq, targetFreq);
+          readings.push(cents);
+          setNeedleGeneric(needle, cents);
+        }
+        elapsed += CONFIG.PITCH_POLL_MS;
+        const remainSec = Math.max(0, Math.ceil((CONFIG.CHECKER_LISTEN_MS - elapsed)/1000));
+        statusText.textContent = `🗣️ 発声中... 残り${remainSec}秒`;
+
+        if (elapsed >= CONFIG.CHECKER_LISTEN_MS){
+          clearInterval(timer);
+          stream.getTracks().forEach(t => t.stop());
+          finish(readings);
+        }
+      }, CONFIG.PITCH_POLL_MS);
+
+      function finish(readings){
+        startBtn.disabled = false;
+        statusText.textContent = '';
+        if (readings.length < 3){
+          resultBox.style.display = 'block'; resultBox.className = 'result ng';
+          resultBig.textContent = '声が検出できませんでした';
+          resultSub.textContent = 'もう少しはっきり、長めに発声してみてください。';
+          return;
+        }
+        const centsMedian = median(readings);
+        const ok = Math.abs(centsMedian) <= CONFIG.TOLERANCE_CENTS;
+        resultBox.style.display = 'block';
+        resultBox.className = 'result ' + (ok ? 'ok' : 'ng');
+        resultBig.textContent = ok ? '⭕ OK！ 音程が合っています' : '❌ NG（音程がズレています）';
+        const direction = centsMedian > 0 ? '高め' : '低め';
+        resultSub.textContent = ok
+          ? `ズレ: 約${Math.abs(centsMedian).toFixed(0)}セント（誤差の範囲内）`
+          : `目標より${direction}です（約${Math.abs(centsMedian).toFixed(0)}セントのズレ）`;
+      }
+    });
+  })();
+
+  // ============================================================
+  // ② トレーニングモード
+  // ============================================================
+  (function(){
+    const noteSelect = document.getElementById('trainingNote');
+    const freqLabel = document.getElementById('trainingFreqLabel');
+    const startBtn = document.getElementById('trainingStartBtn');
+    const stopBtn = document.getElementById('trainingStopBtn');
+    const statusText = document.getElementById('trainingStatus');
+    const progressText = document.getElementById('trainingProgress');
+    const meterWrap = document.getElementById('trainingMeterWrap');
+    const meterLabels = document.getElementById('trainingMeterLabels');
+    const needle = document.getElementById('trainingNeedle');
+    const keepWrap = document.getElementById('trainingKeepWrap');
+    const keepFill = document.getElementById('trainingKeepFill');
+    const hitFlash = document.getElementById('trainingHitFlash');
+    const hitComment = document.getElementById('trainingHitComment');
+
+    fillNoteSelect(noteSelect);
+    function updateLabel(){ freqLabel.textContent = `目標周波数: ${NOTES[noteSelect.value].freq.toFixed(2)} Hz`; }
+    updateLabel();
+    noteSelect.addEventListener('change', updateLabel);
+
+    let running = false;
+    let stream, ctx, source, analyser, buf;
+    let noteIndex = 0;
+    let consecutiveHits = 0;
+    let pollTimer = null;
+
+    startBtn.addEventListener('click', async () => {
+      noteIndex = parseInt(noteSelect.value, 10);
+      consecutiveHits = 0;
+      running = true;
+      startBtn.style.display = 'none';
+      stopBtn.style.display = 'block';
+      hitFlash.textContent = '';
+      hitComment.textContent = '';
+
+      ctx = getAudioCtx();
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      statusText.textContent = '🎙️ マイクを準備中...';
+      try { stream = await getMicStream(); }
+      catch (err){
+        statusText.textContent = 'マイクを使用できませんでした。許可設定をご確認ください。';
+        endTraining();
+        return;
+      }
+      source = ctx.createMediaStreamSource(stream);
+      analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+      buf = new Float32Array(analyser.fftSize);
+
+      meterWrap.style.display = 'block';
+      meterLabels.style.display = 'flex';
+      keepWrap.style.display = 'block';
+
+      runNoteCycle();
+    });
+
+    stopBtn.addEventListener('click', endTraining);
+
+    function endTraining(){
+      running = false;
+      if (pollTimer) clearInterval(pollTimer);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      startBtn.style.display = 'block';
+      stopBtn.style.display = 'none';
+      meterWrap.style.display = 'none';
+      meterLabels.style.display = 'none';
+      keepWrap.style.display = 'none';
+      keepFill.style.width = '0%';
+      progressText.textContent = '';
+      if (statusText.textContent.indexOf('マイク') === -1) statusText.textContent = 'トレーニングを終了しました';
+    }
+
+    async function runNoteCycle(){
+      if (!running) return;
+      if (noteIndex >= NOTES.length){
+        statusText.textContent = '🎉 全ての音でトレーニング完了！';
+        progressText.textContent = '';
+        endTraining();
+        return;
+      }
+      const note = NOTES[noteIndex];
+      progressText.textContent = `音 ${noteIndex + 1} / ${NOTES.length}　（連続HIT: ${consecutiveHits} / ${CONFIG.TRAINING_CONSECUTIVE_TARGET}）`;
+      statusText.textContent = `🔊 お手本再生中... (${note.label})`;
+      hitFlash.textContent = '';
+      hitComment.textContent = '';
+      keepFill.style.width = '0%';
+
+      await playTone(note.freq, CONFIG.TONE_DURATION_TRAINING);
+      if (!running) return;
+
+      statusText.textContent = '🗣️ 同じ音程を出して、そのままキープ！';
+      const tracker = createKeepTracker();
+      let elapsed = 0;
+
+      pollTimer = setInterval(() => {
+        if (!running) return;
+        analyser.getFloatTimeDomainData(buf);
+        const freq = detectPitch(buf, ctx.sampleRate);
+        let inRange = false;
+        if (freq > 60 && freq < 1200){
+          const cents = freqToCents(freq, note.freq);
+          setNeedleGeneric(needle, cents);
+          inRange = Math.abs(cents) <= CONFIG.TOLERANCE_CENTS;
+        } else {
+          inRange = false;
+        }
+        const hit = updateKeepTracker(tracker, inRange, CONFIG.PITCH_POLL_MS);
+        keepFill.style.width = Math.min(100, (tracker.keepMs / CONFIG.KEEP_MS) * 100) + '%';
+        elapsed += CONFIG.PITCH_POLL_MS;
+
+        if (hit){
+          clearInterval(pollTimer);
+          consecutiveHits++;
+          const elapsedSec = (elapsed / 1000).toFixed(1);
+          hitFlash.textContent = `✨ HIT！（${elapsedSec}秒）`;
+          hitComment.textContent = getTrainingComment(elapsed);
+          statusText.textContent = '';
+          setTimeout(() => {
+            if (!running) return;
+            if (consecutiveHits >= CONFIG.TRAINING_CONSECUTIVE_TARGET){
+              consecutiveHits = 0;
+              noteIndex++;
+            }
+            runNoteCycle();
+          }, 1800);
+        }
+      }, CONFIG.PITCH_POLL_MS);
+    }
+  })();
+
+  // ============================================================
+  // ③ 音痴度テストモード
+  // ============================================================
+  (function(){
+    const startBtn = document.getElementById('testStartBtn');
+    const statusText = document.getElementById('testStatus');
+    const progressText = document.getElementById('testProgress');
+    const meterWrap = document.getElementById('testMeterWrap');
+    const meterLabels = document.getElementById('testMeterLabels');
+    const needle = document.getElementById('testNeedle');
+    const keepWrap = document.getElementById('testKeepWrap');
+    const keepFill = document.getElementById('testKeepFill');
+    const hitFlash = document.getElementById('testHitFlash');
+    const resultBox = document.getElementById('testResult');
+    const resultBig = document.getElementById('testResultBig');
+    const resultSub = document.getElementById('testResultSub');
+    const resultTable = document.getElementById('testResultTable');
+
+    function pickRandomNotes(n){
+      const pool = [...NOTES.keys()];
+      const chosen = [];
+      for (let i = 0; i < n && pool.length > 0; i++){
+        const idx = Math.floor(Math.random() * pool.length);
+        chosen.push(pool[idx]);
+        pool.splice(idx, 1);
+      }
+      return chosen;
+    }
+
+    startBtn.addEventListener('click', async () => {
+      startBtn.disabled = true;
+      resultBox.style.display = 'none';
+      resultTable.innerHTML = '';
+
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') await ctx.resume();
+
+      statusText.textContent = '🎙️ マイクを準備中...';
+      let stream;
+      try { stream = await getMicStream(); }
+      catch (err){
+        statusText.textContent = 'マイクを使用できませんでした。許可設定をご確認ください。';
+        startBtn.disabled = false;
+        return;
+      }
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+      const buf = new Float32Array(analyser.fftSize);
+
+      meterWrap.style.display = 'block';
+      meterLabels.style.display = 'flex';
+      keepWrap.style.display = 'block';
+
+      const noteIndices = pickRandomNotes(5);
+      const results = [];
+
+      for (let q = 0; q < noteIndices.length; q++){
+        const note = NOTES[noteIndices[q]];
+        progressText.textContent = `問題 ${q + 1} / 5`;
+        statusText.textContent = `🔊 お手本再生中... (${note.label})`;
+        hitFlash.textContent = '';
+        keepFill.style.width = '0%';
+
+        await playTone(note.freq, CONFIG.TONE_DURATION_TEST);
+        statusText.textContent = '🗣️ 同じ音程を出して、3秒キープ！';
+
+        const outcome = await new Promise((resolve) => {
+          const tracker = createKeepTracker();
+          const centsLog = [];
+          let elapsed = 0;
+          const timer = setInterval(() => {
+            analyser.getFloatTimeDomainData(buf);
+            const freq = detectPitch(buf, ctx.sampleRate);
+            let inRange = false;
+            if (freq > 60 && freq < 1200){
+              const cents = freqToCents(freq, note.freq);
+              centsLog.push(cents);
+              setNeedleGeneric(needle, cents);
+              inRange = Math.abs(cents) <= CONFIG.TOLERANCE_CENTS;
+            }
+            const hit = updateKeepTracker(tracker, inRange, CONFIG.PITCH_POLL_MS);
+            keepFill.style.width = Math.min(100, (tracker.keepMs / CONFIG.KEEP_MS) * 100) + '%';
+            elapsed += CONFIG.PITCH_POLL_MS;
+
+            if (hit){
+              clearInterval(timer);
+              hitFlash.textContent = '✨ HIT！';
+              resolve({ hit: true, timeMs: elapsed, centsMedian: median(centsLog) });
+            } else if (elapsed >= CONFIG.TEST_TIMEOUT_MS){
+              clearInterval(timer);
+              hitFlash.textContent = '⏱️ タイムアウト';
+              resolve({ hit: false, timeMs: elapsed, centsMedian: centsLog.length ? median(centsLog) : null });
+            }
+          }, CONFIG.PITCH_POLL_MS);
+        });
+
+        results.push({ note, ...outcome });
+        await new Promise(r => setTimeout(r, 900));
+      }
+
+      stream.getTracks().forEach(t => t.stop());
+      meterWrap.style.display = 'none';
+      meterLabels.style.display = 'none';
+      keepWrap.style.display = 'none';
+      progressText.textContent = '';
+      statusText.textContent = '';
+      hitFlash.textContent = '';
+      startBtn.disabled = false;
+
+      showTestResult(results);
+    });
+
+    function showTestResult(results){
+      const hitCount = results.filter(r => r.hit).length;
+      const hitTimes = results.filter(r => r.hit).map(r => r.timeMs);
+      const avgTime = hitTimes.length ? (hitTimes.reduce((a,b) => a+b, 0) / hitTimes.length / 1000) : null;
+      const biasVals = results.filter(r => r.centsMedian !== null).map(r => r.centsMedian);
+      const avgBias = biasVals.length ? biasVals.reduce((a,b) => a+b, 0) / biasVals.length : null;
+
+      let typeLabel, typeDetail;
+      if (hitCount === 5){
+        typeLabel = '🎉 音感問題なし！';
+        typeDetail = avgTime !== null ? `平均${avgTime.toFixed(1)}秒でキープできました。` : '';
+      } else if (hitCount >= 3){
+        typeLabel = '👍 まずまず！少しの練習で完璧に';
+        typeDetail = '②トレーニングモードで苦手な音を練習してみましょう。';
+      } else if (hitCount >= 1){
+        typeLabel = '😅 少し音痴気味';
+        typeDetail = '音を探すのに時間がかかる傾向があります。②トレーニングモードがおすすめです。';
+      } else {
+        typeLabel = '🎤 音痴の可能性あり';
+        typeDetail = '焦らず、②トレーニングモードで1音ずつ練習してみましょう。';
+      }
+      if (avgBias !== null && Math.abs(avgBias) > 30){
+        typeDetail += `　傾向として音程が${avgBias > 0 ? '高め' : '低め'}にズレやすいようです。`;
+      }
+
+      resultBox.style.display = 'block';
+      resultBox.className = 'result ' + (hitCount >= 3 ? 'ok' : 'ng');
+      resultBig.textContent = typeLabel;
+      resultSub.textContent = `5問中 ${hitCount}問 HIT　${typeDetail}`;
+
+      let rows = '<tr><th>問題</th><th>音</th><th>結果</th><th>時間</th></tr>';
+      results.forEach((r, i) => {
+        rows += `<tr><td>${i+1}</td><td>${r.note.label}</td><td>${r.hit ? '⭕' : '❌'}</td><td>${(r.timeMs/1000).toFixed(1)}秒</td></tr>`;
+      });
+      resultTable.innerHTML = rows;
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>
