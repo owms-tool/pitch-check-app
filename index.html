@@ -82,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>🎤 音痴！or NOT!!</h1>
-  <div class="version">v2.2</div>
+  <div class="version">v2.3</div>
 
   <div class="tabs">
     <div class="tab active" data-mode="checker">① チェッカー</div>
@@ -169,6 +169,7 @@
     KEEP_MS: 3000,               // HIT判定に必要な連続キープ時間（ミリ秒）
     GRACE_BUDGET_MS: 300,        // キープ中、範囲外にはみ出しても許容する合計時間（ミリ秒）
     TRAINING_CONSECUTIVE_TARGET: 1, // トレーニングで次の音に進むための連続HIT数（1なら1回HITで即次へ）
+    TRAINING_LOOP: true,          // trueなら高いドの次は低いドに戻ってループし続ける（falseなら高いドで終了）
     TEST_TIMEOUT_MS: 15000,      // テストモードで1問あたりのタイムアウト（ミリ秒）
     TONE_DURATION_CHECKER: 5.0,  // チェッカーモードのお手本再生時間（秒）
     TONE_DURATION_TRAINING: 2.0, // トレーニングモードのお手本再生時間（秒）
@@ -538,8 +539,12 @@
     async function runNoteCycle(){
       if (!running) return;
       if (noteIndex >= NOTES.length){
-        endTraining('🎉 全ての音でトレーニング完了！');
-        return;
+        if (CONFIG.TRAINING_LOOP){
+          noteIndex = 0;
+        } else {
+          endTraining('🎉 全ての音でトレーニング完了！');
+          return;
+        }
       }
       const note = NOTES[noteIndex];
       noteSelect.value = noteIndex;
