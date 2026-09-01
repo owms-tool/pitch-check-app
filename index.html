@@ -67,7 +67,7 @@
   .result-big{font-size:1.5rem;font-weight:bold;margin-bottom:4px;}
   .result.ok .result-big{color:var(--ok);}
   .result.ng .result-big{color:var(--ng);}
-  .result-sub{font-size:0.85rem;color:var(--sub);}
+  .result-sub{font-size:0.95rem;color:var(--sub);}
 
   .hit-flash{text-align:center;font-size:1.4rem;font-weight:bold;color:var(--ok);min-height:1.6em;margin-top:4px;}
   .hit-comment{text-align:center;font-size:0.85rem;color:var(--sub);min-height:1.3em;margin-top:2px;}
@@ -82,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>🎤 音程チェッカー / トレーニング / テスト</h1>
-  <div class="version">v1.4</div>
+  <div class="version">v1.5</div>
 
   <div class="tabs">
     <div class="tab active" data-mode="checker">① チェッカー</div>
@@ -114,10 +114,9 @@
     <div class="meter-wrap" id="trainingMeterWrap"><div class="meter-scale"></div><div class="meter-needle" id="trainingNeedle"></div></div>
     <div class="meter-labels" id="trainingMeterLabels"><span>低い (-100¢)</span><span>ぴったり</span><span>高い (+100¢)</span></div>
     <div class="keep-bar-wrap" id="trainingKeepWrap"><div class="keep-bar-fill" id="trainingKeepFill"></div></div>
-    <div class="hit-flash" id="trainingHitFlash"></div>
-    <div class="hit-comment" id="trainingHitComment"></div>
     <div class="result" id="trainingResultBox">
       <div class="result-big" id="trainingResultBig"></div>
+      <div class="result-sub" id="trainingResultSub"></div>
     </div>
   </div>
 
@@ -160,6 +159,7 @@
     TONE_DURATION_TEST: 3.0,     // テストモードのお手本再生時間（秒）
     CHECKER_LISTEN_MS: 5000,     // チェッカーモードの発声・解析時間（ミリ秒）
     PITCH_POLL_MS: 80,           // ピッチ解析の間隔（ミリ秒）
+    TONE_GAIN: 0.7,               // お手本音の音量（0〜1）
     // トレーニングモード：HITまでの時間に応じたコメントのしきい値（秒）としきい値未満の場合のコメント
     TRAINING_TIME_COMMENTS: [
       { maxSec: 2,   text: "🎯 一発ヒット！素晴らしい音感です" },
@@ -237,8 +237,8 @@
       osc.frequency.value = freq;
       const now = ctx.currentTime;
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.3, now + 0.05);
-      gain.gain.setValueAtTime(0.3, Math.max(now + 0.05, now + durationSec - 0.05));
+      gain.gain.linearRampToValueAtTime(CONFIG.TONE_GAIN, now + 0.05);
+      gain.gain.setValueAtTime(CONFIG.TONE_GAIN, Math.max(now + 0.05, now + durationSec - 0.05));
       gain.gain.linearRampToValueAtTime(0, now + durationSec);
       osc.connect(gain).connect(ctx.destination);
       osc.start(now);
@@ -439,10 +439,9 @@
     const needle = document.getElementById('trainingNeedle');
     const keepWrap = document.getElementById('trainingKeepWrap');
     const keepFill = document.getElementById('trainingKeepFill');
-    const hitFlash = document.getElementById('trainingHitFlash');
-    const hitComment = document.getElementById('trainingHitComment');
     const resultBox = document.getElementById('trainingResultBox');
     const resultBig = document.getElementById('trainingResultBig');
+    const resultSub = document.getElementById('trainingResultSub');
 
     fillNoteSelect(noteSelect);
     function updateLabel(){ freqLabel.textContent = `目標周波数: ${NOTES[noteSelect.value].freq.toFixed(2)} Hz`; }
@@ -461,8 +460,6 @@
       running = true;
       startBtn.style.display = 'none';
       stopBtn.style.display = 'block';
-      hitFlash.textContent = '';
-      hitComment.textContent = '';
       resultBox.style.display = 'none';
 
       ctx = getAudioCtx();
@@ -471,8 +468,9 @@
       statusText.textContent = '🎙️ マイクを準備中...';
       try { stream = await getMicStream(); }
       catch (err){
-        statusText.textContent = 'マイクを使用できませんでした。許可設定をご確認ください。';
-        endTraining();
+        statusText.textContent = '';
+        endTraining('マイクを使用できませんでした。許可設定をご確認ください。');
+        resultBox.className = 'result ng';
         return;
       }
       source = ctx.createMediaStreamSource(stream);
@@ -489,7 +487,7 @@
       runNoteCycle();
     });
 
-    stopBtn.addEventListener('click', () => endTraining('トレーニングを終了しました'));
+    stopBtn.addEventListener('click', () => endTraining());
 
     function endTraining(finalMessage){
       running = false;
@@ -506,11 +504,14 @@
         resultBox.style.display = 'block';
         resultBox.className = 'result ok';
         resultBig.textContent = finalMessage;
-      } else if (statusText.textContent.trim() === ''){
+        resultSub.textContent = '';
+      } else if (resultBox.style.display !== 'block'){
         resultBox.style.display = 'block';
         resultBox.className = 'result ok';
         resultBig.textContent = 'トレーニングを終了しました';
+        resultSub.textContent = '';
       }
+      // finalMessage省略時、直前のHIT結果が既に表示されていればそのまま残す
     }
 
     async function runNoteCycle(){
@@ -522,8 +523,6 @@
       const note = NOTES[noteIndex];
       progressText.textContent = `音 ${noteIndex + 1} / ${NOTES.length}　（連続HIT: ${consecutiveHits} / ${CONFIG.TRAINING_CONSECUTIVE_TARGET}）`;
       statusText.textContent = `🔊 お手本再生中... (${note.label})`;
-      hitFlash.textContent = '';
-      hitComment.textContent = '';
       keepFill.style.width = '0%';
 
       if (micTrack) micTrack.enabled = false;
@@ -555,8 +554,10 @@
           clearInterval(pollTimer);
           consecutiveHits++;
           const elapsedSec = (elapsed / 1000).toFixed(1);
-          hitFlash.textContent = `✨ HIT！（${elapsedSec}秒）`;
-          hitComment.textContent = getTrainingComment(elapsed);
+          resultBox.style.display = 'block';
+          resultBox.className = 'result ok';
+          resultBig.textContent = `✨ HIT！（${elapsedSec}秒）`;
+          resultSub.textContent = getTrainingComment(elapsed);
           statusText.textContent = '';
           setTimeout(() => {
             if (!running) return;
